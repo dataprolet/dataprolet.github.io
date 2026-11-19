@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Meine sortierbare Tabelle</title>
+
+    <!-- Tabulator CSS -->
+    <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css"
+          rel="stylesheet">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        #status {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        #tabelle {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Meine Tabelle</h1>
+
+    <p id="status">Lade Tabelle ...</p>
+
+    <div id="tabelle"></div>
+
+    <!-- Marked: Markdown in HTML umwandeln -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Tabulator: Tabelle sortierbar machen -->
+    <script src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+
+    <script>
+
+    async function ladeTabelle() {
+
+        try {
+
+            // README.md aus dem Repository laden
+            const response = await fetch("../README.md");
+
+            if (!response.ok) {
+                throw new Error("README.md konnte nicht geladen werden.");
+            }
+
+            const markdown = await response.text();
+
+            // Markdown in HTML umwandeln
+            const html = marked.parse(markdown);
+
+            // HTML vorübergehend parsen
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+
+            // Erste Tabelle aus dem Markdown suchen
+            const markdownTabelle = doc.querySelector("table");
+
+            if (!markdownTabelle) {
+                throw new Error("Keine Markdown-Tabelle gefunden.");
+            }
+
+            // Spaltenüberschriften auslesen
+            const headers = Array.from(
+                markdownTabelle.querySelectorAll("thead th")
+            ).map(th => th.textContent.trim());
+
+            // Tabellenzeilen auslesen
+            const rows = Array.from(
+                markdownTabelle.querySelectorAll("tbody tr")
+            ).map(tr => {
+
+                const cells = Array.from(tr.querySelectorAll("td"));
+
+                const row = {};
+
+                headers.forEach((header, index) => {
+                    row["col" + index] =
+                        cells[index]?.textContent.trim() ?? "";
+                });
+
+                return row;
+            });
+
+            // Spaltendefinitionen automatisch erzeugen
+            const columns = headers.map((header, index) => ({
+                title: header,
+                field: "col" + index,
+                headerSort: true,
+                sorter: "string",
+                headerFilter: false
+            }));
+
+            // Tabulator erstellen
+            new Tabulator("#tabelle", {
+                data: rows,
+                columns: columns,
+                layout: "fitColumns",
+                initialSort: [],
+                pagination: true,
+                paginationSize: 25,
+                paginationSizeSelector: [25, 50, 100],
+                locale: "de-de"
+            });
+
+            document.getElementById("status").textContent =
+                rows.length + " Einträge gefunden. " +
+                "Klicke auf eine Spaltenüberschrift zum Sortieren.";
+
+        } catch (error) {
+
+            document.getElementById("status").textContent =
+                "Fehler: " + error.message;
+
+            console.error(error);
+        }
+    }
+
+    ladeTabelle();
+
+    </script>
+
+</body>
+</html>
