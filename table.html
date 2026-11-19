@@ -54,11 +54,11 @@
 
         try {
 
-            // README.md aus dem Repository laden
-            const response = await fetch("../README.md");
+            // table.md aus dem Repository laden
+            const response = await fetch("../table.md");
 
             if (!response.ok) {
-                throw new Error("README.md konnte nicht geladen werden.");
+                throw new Error("table.md konnte nicht geladen werden.");
             }
 
             const markdown = await response.text();
