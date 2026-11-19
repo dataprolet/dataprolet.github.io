@@ -1,154 +1,172 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Meine sortierbare Tabelle</title>
-
-    <!-- Tabulator CSS -->
-    <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css"
-          rel="stylesheet">
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        h1 {
-            margin-bottom: 10px;
-        }
-
-        #status {
-            color: #666;
-            margin-bottom: 20px;
-        }
-
-        #tabelle {
-            margin-top: 20px;
-        }
-    </style>
-</head>
-
-<body>
-
-    <h1>Meine Tabelle</h1>
-
-    <p id="status">Lade Tabelle ...</p>
-
-    <div id="tabelle"></div>
-
-    <!-- Marked: Markdown in HTML umwandeln -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-    <!-- Tabulator: Tabelle sortierbar machen -->
-    <script src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
-
-    <script>
-
-    async function ladeTabelle() {
-
-        try {
-
-            // README.md aus dem Repository laden
-            const response = await fetch("../README.md");
-
-            if (!response.ok) {
-                throw new Error("README.md konnte nicht geladen werden.");
-            }
-
-            const markdown = await response.text();
-
-            // Markdown in HTML umwandeln
-            const html = marked.parse(markdown);
-
-            // HTML vorübergehend parsen
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-
-            // Erste Tabelle aus dem Markdown suchen
-            const markdownTabelle = doc.querySelector("table");
-
-            if (!markdownTabelle) {
-                throw new Error("Keine Markdown-Tabelle gefunden.");
-            }
-
-            // Spaltenüberschriften auslesen
-            const headers = Array.from(
-                markdownTabelle.querySelectorAll("thead th")
-            ).map(th => th.textContent.trim());
-
-            // Tabellenzeilen auslesen
-            const rows = Array.from(
-                markdownTabelle.querySelectorAll("tbody tr")
-            ).map(tr => {
-
-                const cells = Array.from(tr.querySelectorAll("td"));
-
-                const row = {};
-
-                headers.forEach((header, index) => {
-                    row["col" + index] =
-                        cells[index]?.textContent.trim() ?? "";
-                });
-
-                return row;
-            });
-
-            // Spaltendefinitionen automatisch erzeugen
-            const columns = headers.map((header, index) => ({
-                title: header,
-                field: "col" + index,
-                headerSort: true,
-
-                // Zahlen automatisch erkennen
-                sorter: function(a, b) {
-                    const numA = Number(a.replace(",", "."));
-                    const numB = Number(b.replace(",", "."));
-
-                    const isNumA = a.trim() !== "" && !isNaN(numA);
-                    const isNumB = b.trim() !== "" && !isNaN(numB);
-
-                    if (isNumA && isNumB) {
-                        return numA - numB;
-                    }
-
-                    return a.localeCompare(b, "de");
-                }
-            }));
-
-            // Tabulator erstellen
-            new Tabulator("#tabelle", {
-                data: rows,
-                columns: columns,
-                layout: "fitColumns",
-                initialSort: [],
-                pagination: true,
-                paginationSize: 25,
-                paginationSizeSelector: [25, 50, 100],
-                locale: "de-de"
-            });
-
-            document.getElementById("status").textContent =
-                rows.length + " Einträge gefunden. " +
-                "Klicke auf eine Spaltenüberschrift zum Sortieren.";
-
-        } catch (error) {
-
-            document.getElementById("status").textContent =
-                "Fehler: " + error.message;
-
-            console.error(error);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sortierbare Markdown-Tabelle</title>
+  <!-- Marked.js zum Parsen von Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #24292f;
+      --border-color: #d0d7de;
+      --header-bg: #f6f8fa;
+      --hover-bg: #f3f4f6;
+      --accent-color: #0969da;
     }
 
-    ladeTabelle();
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0d1117;
+        --text-color: #c9d1d9;
+        --border-color: #30363d;
+        --header-bg: #161b22;
+        --hover-bg: #21262d;
+        --accent-color: #58a6ff;
+      }
+    }
 
-    </script>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.5;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
 
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--header-bg);
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 1.8rem;
+    }
+
+    th:hover {
+      background-color: var(--hover-bg);
+    }
+
+    /* Sortier-Pfeile */
+    th::after {
+      content: "↕";
+      position: absolute;
+      right: 0.6rem;
+      opacity: 0.4;
+      font-size: 0.85em;
+    }
+
+    th.sort-asc::after {
+      content: "▲";
+      opacity: 1;
+      color: var(--accent-color);
+    }
+
+    th.sort-desc::after {
+      content: "▼";
+      opacity: 1;
+      color: var(--accent-color);
+    }
+
+    tr:nth-child(even) {
+      background-color: rgba(128, 128, 128, 0.04);
+    }
+
+    tr:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .error {
+      color: #cf222e;
+      padding: 1rem;
+      border: 1px solid #cf222e;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="content">Lade Tabelle...</div>
+
+  <script>
+    // HIER DEN DATEINAMEN DEINER MARKDOWN-DATEI EINTRAGEN:
+    const MARKDOWN_FILE = 'table.md';
+
+    async function loadAndRenderMarkdown() {
+      const container = document.getElementById('content');
+      try {
+        const response = await fetch(MARKDOWN_FILE);
+        if (!response.ok) {
+          throw new Error(`Datei "${MARKDOWN_FILE}" konnte nicht geladen werden (HTTP ${response.status}).`);
+        }
+        const markdownText = await response.text();
+        
+        // Markdown in HTML umwandeln
+        container.innerHTML = marked.parse(markdownText);
+
+        // Alle gerenderten Tabellen sortierbar machen
+        container.querySelectorAll('table').forEach(makeTableSortable);
+      } catch (err) {
+        container.innerHTML = `<div class="error"><strong>Fehler:</strong> ${err.message}</div>`;
+      }
+    }
+
+    function makeTableSortable(table) {
+      const headers = table.querySelectorAll('th');
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
+
+      headers.forEach((header, colIndex) => {
+        let asc = true;
+
+        header.addEventListener('click', () => {
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+
+          // Visuelle Indikatoren zurücksetzen
+          headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+          header.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+          rows.sort((rowA, rowB) => {
+            const cellA = rowA.children[colIndex]?.innerText.trim() || '';
+            const cellB = rowB.children[colIndex]?.innerText.trim() || '';
+
+            // Prüfen, ob beide Werte Zahlen sind (unterstützt deutsches Komma & Punkt)
+            const numA = parseFloat(cellA.replace(/\./g, '').replace(',', '.'));
+            const numB = parseFloat(cellB.replace(/\./g, '').replace(',', '.'));
+
+            if (!isNaN(numA) && !isNaN(numB) && /^[0-9.,\s-]+$/.test(cellA) && /^[0-9.,\s-]+$/.test(cellB)) {
+              return asc ? numA - numB : numB - numA;
+            }
+
+            // Alphabetisch sortieren (inkl. Umlaute)
+            return asc
+              ? cellA.localeCompare(cellB, 'de', { numeric: true, sensitivity: 'base' })
+              : cellB.localeCompare(cellA, 'de', { numeric: true, sensitivity: 'base' });
+          });
+
+          // Sortierte Zeilen neu einfügen
+          rows.forEach(row => tbody.appendChild(row));
+          asc = !asc;
+        });
+      });
+    }
+
+    loadAndRenderMarkdown();
+  </script>
 </body>
 </html>
