@@ -108,6 +108,27 @@
                 headerFilter: false
             }));
 
+            const columns = headers.map((header, index) => ({
+                title: header,
+                field: "col" + index,
+                headerSort: true,
+
+                // Zahlen automatisch erkennen
+                sorter: function(a, b) {
+                    const numA = Number(a.replace(",", "."));
+                    const numB = Number(b.replace(",", "."));
+
+                    const isNumA = a.trim() !== "" && !isNaN(numA);
+                    const isNumB = b.trim() !== "" && !isNaN(numB);
+
+                    if (isNumA && isNumB) {
+                        return numA - numB;
+                    }
+
+                    return a.localeCompare(b, "de");
+                }
+            }));
+
             // Tabulator erstellen
             new Tabulator("#tabelle", {
                 data: rows,
