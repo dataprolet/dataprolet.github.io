@@ -54,11 +54,11 @@
 
         try {
 
-            // table.md aus dem Repository laden
-            const response = await fetch("../table.md");
+            // README.md aus dem Repository laden
+            const response = await fetch("../README.md");
 
             if (!response.ok) {
-                throw new Error("table.md konnte nicht geladen werden.");
+                throw new Error("README.md konnte nicht geladen werden.");
             }
 
             const markdown = await response.text();
@@ -100,14 +100,6 @@
             });
 
             // Spaltendefinitionen automatisch erzeugen
-            const columns = headers.map((header, index) => ({
-                title: header,
-                field: "col" + index,
-                headerSort: true,
-                sorter: "string",
-                headerFilter: false
-            }));
-
             const columns = headers.map((header, index) => ({
                 title: header,
                 field: "col" + index,
