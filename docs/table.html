@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sortierbare Markdown-Tabelle</title>
+  <title>Sortable Markdown table</title>
   <!-- Marked.js zum Parsen von Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
@@ -101,10 +101,9 @@
 </head>
 <body>
 
-  <div id="content">Lade Tabelle...</div>
+  <div id="content">Loading table...</div>
 
   <script>
-    // HIER DEN DATEINAMEN DEINER MARKDOWN-DATEI EINTRAGEN:
     const MARKDOWN_FILE = 'table.md';
 
     async function loadAndRenderMarkdown() {
@@ -116,13 +115,13 @@
         }
         const markdownText = await response.text();
         
-        // Markdown in HTML umwandeln
+        // Convert Markdown to HTML
         container.innerHTML = marked.parse(markdownText);
 
-        // Alle gerenderten Tabellen sortierbar machen
+        // Make all tables sortable
         container.querySelectorAll('table').forEach(makeTableSortable);
       } catch (err) {
-        container.innerHTML = `<div class="error"><strong>Fehler:</strong> ${err.message}</div>`;
+        container.innerHTML = `<div class="error"><strong>Error:</strong> ${err.message}</div>`;
       }
     }
 
@@ -137,7 +136,7 @@
         header.addEventListener('click', () => {
           const rows = Array.from(tbody.querySelectorAll('tr'));
 
-          // Visuelle Indikatoren zurücksetzen
+          // Reset visual indicator
           headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
           header.classList.add(asc ? 'sort-asc' : 'sort-desc');
 
@@ -145,7 +144,7 @@
             const cellA = rowA.children[colIndex]?.innerText.trim() || '';
             const cellB = rowB.children[colIndex]?.innerText.trim() || '';
 
-            // Prüfen, ob beide Werte Zahlen sind (unterstützt deutsches Komma & Punkt)
+            // Check if values are numbers
             const numA = parseFloat(cellA.replace(/\./g, '').replace(',', '.'));
             const numB = parseFloat(cellB.replace(/\./g, '').replace(',', '.'));
 
@@ -153,13 +152,13 @@
               return asc ? numA - numB : numB - numA;
             }
 
-            // Alphabetisch sortieren (inkl. Umlaute)
+            // Sort alphabetically
             return asc
               ? cellA.localeCompare(cellB, 'de', { numeric: true, sensitivity: 'base' })
               : cellB.localeCompare(cellA, 'de', { numeric: true, sensitivity: 'base' });
           });
 
-          // Sortierte Zeilen neu einfügen
+          // Insert sorted lines
           rows.forEach(row => tbody.appendChild(row));
           asc = !asc;
         });
